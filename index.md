@@ -217,6 +217,68 @@ sequenceDiagram
 - 翻訳・QA は Foundry エージェント（Azure の従量課金）で回すので、2026年11月に無償枠が終わる AI Builder には依存しない。Foundry 費用は Power Platform ライセンスと別勘定。
 - 価格は米ドルの参考値。日本リージョン価格・税・契約で変わるため最新は Microsoft の価格ページで確認。
 
+### 9-b. 実額シミュレーション（100頁プロトコル 英→日）
+
+費用は **「一度きり（構築期）」と「毎月（運用期）」** に分かれ、運用期はさらに3層 —— **①従量（文書量に比例）／②固定（量に無関係）／③実行者（人数課金）**。効くのは固定層と人数。
+
+**前提**：100頁 ≈ 5万語 ≈ 30万字（英）≈ 入力7万トークン／和訳出力12万トークン。単価は USD 参考（すべて100万単位）：GPT-4o $2.50入/$10出、GPT-4.1 $2/$8、Azure Translator 標準 $10/100万字、Custom Translator $40/100万字。
+
+**構築期（一度きり）** — 主にエンジニア工数（社内人件費）。Azure への一度きり支払いは、Custom Translator を使わなければほぼゼロ。AI Search を作ると「作成時点から24/7課金」が始まる点に注意（＝一度きりでなく運用固定費の起点）。
+
+**① 従量（翻訳1本＝100頁、全構成 共通）**
+
+| 方式（②翻訳の担い手） | 100頁1本 |
+|---|---|
+| GPT-4o が全訳（①分類＋②翻訳＋③QA） | ≈ $2.5 |
+| GPT-4.1 が全訳 | ≈ $1.9 |
+| GPT-4.1 mini 下訳 ＋ 4.1 QA | ≈ $0.75 |
+| Azure Translator ＋ LLM critic（実プロジェクトの実際の方向） | ≈ $3.5 |
+
+バックエンド連携（Functions／Logic Apps 従量）は1本1セント未満。prompt caching で繰り返し入力（用語集・原文）を約50%off にできる。
+
+**② 固定（毎月・文書量に無関係）**
+
+| 項目 | 課金形態 | 概算/月 |
+|---|---|---|
+| Azure AI Search（RAG グラウンディングを使う場合・Dedicated） | 24/7固定・停止は「サービス削除」のみ | Basic ≈ $75／S1 ≈ $250 |
+| Private Endpoint／監視（Log Analytics） | 少額固定 | ≈ $10 |
+| （代替）AI Search Serverless（Preview） | アイドル時はストレージのみ | 数$〜 |
+
+**③ 実行者（人数課金）** … §9 冒頭表のとおり。SharePoint／Teams＝$0、本家 Dataverse を対話利用するレビュアーは $20/user/月（PAYG $10/アクティブ）。
+
+**隠れ固定＝グラウンディングの課金メカニズム**（Microsoft 公式で確認）
+
+| 方式 | 標準（固定）費 | メンテの都度課金 | 翻訳時課金 |
+|---|---|---|---|
+| Document Translation glossary（TSV） | **$0**（ファイルのみ・保存無料） | **$0**（差し替えるだけ） | 標準文字課金に内包（$10/100万字） |
+| Custom Translator | モデル保持$0・ただし翻訳が高い | 学習データの**新規**文字数課金（重複は自動 de-dup で無料） | $40/100万字 |
+| AI Search RAG／Foundry file search | **24/7固定 Basic≈$75〜**（or vector store 容量課金） | 再インデックスは容量内無料、ただし埋込トークン＋AIエンリッチ課金 | 取得チャンクが入力トークンに乗る |
+
+→ 用語7誤訳の決定論固定は **TSV glossary（固定$0・メンテ無料・都度課金なし）で足りる**。AI Search は「ICH／PMDA の版を厳密管理する要件が立ったときだけ」。使った瞬間、文書を1本も訳さなくても月$75〜が発生し、止めるにはサービス削除しかない。
+
+**費用は「文書」でなく「人数」で伸びる（最重要）**
+
+③のライセンスは対話レビュアー1人あたり月$20。文書は1本$2.5と桁が小さいので、総額を動かすのは主に**レビュアー人数（本家 Dataverse 利用時）**。
+
+| レビュアー数 | Dataverse ライセンス/月（Premium $20） | PAYG（$10/アクティブ） |
+|---|---|---|
+| 3名 | $60 | $30 |
+| 10名 | $200 | $100 |
+| 50名 | $1,000 | $500 |
+| 100名 | $2,000 | $1,000 |
+
+人数を抑える梃子：**(a)** PAYG＝その月に実際に開いた人だけ課金／**(b)** 記録を SharePoint 側に置けば人数に関係なく$0（項目レベル監査は捨てるトレードオフ、§8）／**(c)** Logic Apps 自動書込なら対話ライセンス不要（文書単位のみ）／**(d)** 重い裁定者だけ Premium、たまの承認者は Teams 承認へ振り分け。→ §11 の段階戦略（SharePoint で$0始動 → 監査要件が立ったら Dataverse）は、そのまま費用最適。
+
+**この章の略語**
+- **TCO**（Total Cost of Ownership）＝総保有コスト。単価でなく「構築＋運用＋保守を通した費用」で見る考え方。
+- **LLM**（Large Language Model）＝大規模言語モデル。ここでは翻訳・QA を担う生成AI。
+- **QA**（Quality Assurance）＝品質チェック工程。別 LLM が訳抜け・用語不整合を検査する。
+- **PAYG**（Pay-As-You-Go）＝従量課金。使った分／その月にアクティブな人だけ支払う。
+- **RAG**（Retrieval-Augmented Generation）＝外部知識を検索して回答に混ぜる仕組み。ここでは版管理に AI Search を使う場合。
+- **TSV**（Tab-Separated Values）＝タブ区切りの表ファイル。用語対訳表（glossary）の形式で、編集は無料・翻訳時に決定論的に置換する。
+- **PE**（Private Endpoint）＝閉域網内だけからアクセスする Azure のプライベート接続。情報保護のため。
+- **de-dup**（de-duplication）＝重複除去。Custom Translator 再学習で既存対訳分は再課金しない仕組み。
+
 ---
 
 ## 10. レビューアプリの構築オプション
@@ -231,6 +293,39 @@ sequenceDiagram
 | 向くケース | 第一版・統制付き最速 | 高頻度・精密レビュー | 文書単位の署名で足りる層 |
 
 **推奨**：まず Power Apps ＋ 標準コネクタで第一版（0円始動）。レビュアーの処理量や diff 編集の要求が UX の限界に当たったら、レビュー画面だけ React（または Power Platform 内で React を動かす code apps ※新しめ・要確認）へ差し替え。台帳とオーケストレーションは据え置きで、差し替えは局所。
+
+### 10-b. レビューアプリの構築・運用コスト
+
+**大前提：2軸は独立** —— **UI の選択＝「構築工数＋ホスティング固定費」**、**記録先の選択＝「実行者の人数ライセンス」**。この2つの掛け合わせで効く（「React だから高い」ではなく「Dataverse を対話利用するから人数課金」）。
+
+**構築費（一度きり）とホスティング（毎月）**
+
+| UI 方式 | 構築工数の目安 | ホスティング固定/月 | 保守負荷 |
+|---|---|---|---|
+| Power Apps canvas | 小（3〜10人日） | $0（実行はライセンス側） | 低（低コード・M365統制付き） |
+| React（Static Web Apps） | 大（10〜30人日） | Free＝$0／Standard ≈ $9（SLA・PE・カスタム認証が要るなら） | 高（認証・依存更新が真の隠れコスト） |
+| Logic Apps 承認 | 極小（0.5〜2人日） | $0（消費のみ・承認1件1セント未満） | 低（ただしセグメント単位は不可） |
+
+**現実的な組み合わせ別 増分/月**（レビュアー3名想定）
+
+| UI × 記録先 | 増分/月 | 向く層 |
+|---|---|---|
+| Power Apps ＋ SharePoint | ≈ $0 | 第一版（推奨） |
+| Power Apps ＋ Dataverse | ≈ $60（$20×3） | 統制強化 |
+| React ＋ SharePoint（Graph） | ≈ $9＋保守 | UX最優先・ライセンス回避 |
+| React ＋ Dataverse | ≈ $69＋保守 | 高頻度・精密＋監査（最重） |
+| Logic Apps 承認 ＋ Dataverse（自動書込） | ≈ $0＋数セント/件 | 文書単位署名で足りる層 |
+
+Logic Apps の承認が Dataverse へ**自動書込**する形なら、監査グレードの記録を**人数ライセンスゼロ**（消費課金のみ）で持てる。ただしセグメント単位の裁定はできない。React の総コストを決めるのは月$9のホスティングではなく**継続保守の工数**（認証・Entra 登録・脆弱性パッチ）である点に注意。
+
+**この章の略語**
+- **UI**（User Interface）＝利用者が操作する画面。ここではレビュー画面。
+- **Entra**（Microsoft Entra ID、旧 Azure AD）＝Microsoft の認証基盤。React を自前ホストするときのサインインに使う。
+- **SLA**（Service Level Agreement）＝稼働率の保証。Static Web Apps は Free に無く、Standard で付く。
+- **CI/CD**（Continuous Integration / Continuous Delivery）＝コードの自動ビルド・自動配信。React 運用の前提作業。
+- **SPA**（Single Page Application）＝1枚のページ上で動く Web アプリ。React の典型形。
+- **Graph**（Microsoft Graph）＝M365 データ（SharePoint 等）へアクセスする API。React が標準側へ記録するときの経路。
+- **diff**＝原文と訳文の差分表示。密な diff 編集が Power Apps の UX 天井の例。
 
 ---
 
@@ -265,6 +360,33 @@ flowchart LR
 2. **記録台帳**：SharePoint リストを Dataverse 互換スキーマで定義（列名・型・選択肢の値・参照先）。
 3. **レビュー2画面**：キュー画面＋セグメント裁定画面を Power Apps で。送信時に `Patch()` で台帳へ書込み＋本人性付与。
 4. **連携ループ**：要求に何を積むか／応答に何を返すか／checkpoint をどこに置くかを実装仕様へ。
+
+---
+
+## 付録A：用語・略語集（文書全体）
+
+各章末の略語に加え、章をまたいで出てくる主要な略語をここでスペルアウトする。
+
+**規制・治験**
+- **ICH**（International Council for Harmonisation）＝医薬品規制調和国際会議。治験文書の国際基準・定訳（規定訳）の出所。
+- **PMDA**（Pharmaceuticals and Medical Devices Agency）＝医薬品医療機器総合機構。日本の規制当局。
+- **MedDRA**（Medical Dictionary for Regulatory Activities）＝ICH 国際医薬用語集。用語ごとに規定訳を持つため、生成任せにせず決定論的に突合する対象。
+- **GxP**＝Good x Practice の総称（GMP＝製造／GCP＝臨床試験／GVP＝安全性監視 など）。規制下の品質基準群。この隣接工程では「LLM 出力そのもの」でなく「誰が・どの用語集で・どのモデルで承認したか」の記録が担保になる。
+- **21 CFR Part 11 / Part 11**＝米 FDA の電子記録・電子署名規則。改ざん防止と「誰が・いつ・何を承認したか」の証跡を要求する。本設計の記録層はこれに耐える証跡づくりが目的。
+- **CSR／IB／SOP**＝治験総括報告書（Clinical Study Report）／治験薬概要書（Investigator's Brochure）／標準業務手順書（Standard Operating Procedure）。①分類が判定する文書カテゴリの例。
+
+**プラットフォーム・技術**
+- **Foundry**＝Microsoft Foundry（旧 Azure AI Foundry）。エージェント（モデル）のホスト基盤。
+- **Agent Framework**＝Microsoft Agent Framework。オーケストレーションをコード側に寄せる後継。HITL の一時停止・再開（checkpoint）を担う。
+- **HITL**（Human-in-the-Loop）＝人間が最終承認する統制。「コスト」ではなく統制のクレジットと捉え、粒度（指摘だけ裁定）で右サイズ化する。
+- **checkpoint**＝ワークフローの一時停止・再開点。人のレビュー待ち（数時間〜数日）を挟むための仕組み。
+- **Dataverse**＝Power Platform の関係型データ基盤。行レベル＋項目レベルの権限・サーバ側監査ログに強く、GxP 証跡を作りやすい。
+- **JSON／JSON Schema**＝構造化データ形式／その型定義。①分類・③QA の出力を機械可読に固定するために使う。
+- **NMT**（Neural Machine Translation）＝ニューラル機械翻訳。Azure Translator の標準エンジン。
+- **Power Fx**＝Power Platform の数式言語。Foundry ワークフローの変数（`System.` ＝読み取り専用のシステム変数／`Local.` ＝自作のローカル変数）を扱う。
+
+**製薬の部門略語**（レビュアーが属する部門の例）
+- **RA**＝薬事（Regulatory Affairs）、**PV**＝ファーマコビジランス／安全性監視（Pharmacovigilance）、**CD**＝臨床開発（Clinical Development）、**MA**＝メディカルアフェアーズ（Medical Affairs）、**CMC**＝製造・品質管理（Chemistry, Manufacturing and Controls）。
 
 ---
 
