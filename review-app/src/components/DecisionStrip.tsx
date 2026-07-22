@@ -12,7 +12,7 @@ function qeColor(qe: number): string {
 export function DecisionStrip(props: {
   segment: Segment
   onAccept: () => void
-  onEdit: (after: string, reason: string) => void
+  onEdit: (after: string, reason: string, promoteToGlossary: boolean) => void
   onReject: (cat: MqmCategory, sev: Severity, reason: string) => void
   onUndo: () => void
 }) {
@@ -20,11 +20,16 @@ export function DecisionStrip(props: {
   const [mode, setMode] = useState<'view' | 'edit' | 'reject'>('view')
   const [draft, setDraft] = useState(s.finalTarget ?? s.targetDraft)
   const [reason, setReason] = useState('')
+  // 用語逸脱(L-Term)や用語集ヒットがある修正は termbase 昇格の第一候補なので既定 ON。
+  // ただし承認ゲート必須（フラグは Decisions に載るだけ、昇格の確定は harvest 側の承認）。
+  const isTermFix = s.glossaryHits.length > 0 || s.criticFlags.some((f) => f.axis === 'L-Term')
+  const [promote, setPromote] = useState(isTermFix)
   const [cat, setCat] = useState<MqmCategory>('Terminology')
   const [sev, setSev] = useState<Severity>('major')
   const approved = s.status === 'approved'
-  const axis = s.criticFlags[0]?.axis ?? '—'
-  const flagMsg = s.criticFlags[0]?.message ?? '全チェック通過'
+  const hasCritic = s.criticFlags.length > 0
+  const axis = hasCritic ? s.criticFlags[0].axis : '—'
+  const flagMsg = hasCritic ? s.criticFlags[0].message : '全チェック通過'
 
   return (
     <div className="strip">
@@ -35,7 +40,7 @@ export function DecisionStrip(props: {
         </div>
         <div style={{ flex: 1, minWidth: 200 }}>
           <div className="muted" style={{ fontSize: 11 }}>
-            {`セグメント ${s.order + 1}`} ・ critic: <span style={{ color: axis === '—' ? 'var(--ok-fg)' : 'var(--danger-fg)' }}>{axis}</span>
+            {`セグメント ${s.order + 1}`} ・ critic: <span style={{ color: hasCritic ? 'var(--danger-fg)' : 'var(--ok-fg)' }}>{axis}</span>
           </div>
           <div style={{ fontSize: 12 }}>{flagMsg}</div>
           {s.backTranslation && (
@@ -67,11 +72,18 @@ export function DecisionStrip(props: {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
           />
-          <div style={{ marginTop: 6, display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
+              <input type="checkbox" checked={promote} onChange={(e) => setPromote(e.target.checked)} />
+              用語集に昇格（承認ゲート行き）
+              <span className="muted" style={{ fontSize: 10 }}>
+                ✓ で Decision.promoteToGlossary=true → harvest が用語責任者の承認を経て termbase 化
+              </span>
+            </label>
             <button
               disabled={!reason.trim()}
               style={{ background: 'var(--accent-bg)', color: 'var(--accent-fg)', borderColor: 'var(--accent-fg)' }}
-              onClick={() => { onEdit(draft, reason); setMode('view') }}
+              onClick={() => { onEdit(draft, reason, promote); setMode('view') }}
             >
               修正を確定
             </button>

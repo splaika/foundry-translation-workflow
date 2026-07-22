@@ -21,8 +21,35 @@ export class MockAdapter implements IReviewRepository {
   }
   async postDecision(d: Decision): Promise<void> {
     this.decisions.push(d)
+    // ① 監査台帳（常に・追記のみ）。実運用では SharePointAdapter が Decisions に追記。
     // eslint-disable-next-line no-console
     console.info('[Decisions 追記]', d)
+    // ②③ フライホイールの行き先を可視化（§10-e）。実運用では UI ではなく Logic Apps が
+    //     Decisions から非同期に harvest して振り分ける。ここは mock が蓄積先を見せる擬似ログ。
+    if (d.action === 'accept' || d.action === 'edit') {
+      // eslint-disable-next-line no-console
+      console.info('[TM 追記] 承認済み対訳を翻訳メモリへ（次回 exact/fuzzy 再利用）', {
+        segmentId: d.segmentId,
+        target: d.action === 'edit' ? d.after : d.before,
+      })
+    }
+    if (d.action === 'edit' && d.promoteToGlossary) {
+      // eslint-disable-next-line no-console
+      console.info('[用語集 昇格キュー] 承認ゲート待ち — 無断昇格しない（フライホイール逆回転の防止）', {
+        segmentId: d.segmentId,
+        before: d.before,
+        after: d.after,
+        reason: d.reason,
+      })
+    }
+    if (d.action === 'reject') {
+      // eslint-disable-next-line no-console
+      console.info('[critic 改善コーパス] MQM 分類を few-shot / AdaptCT へ（同型誤りの検出力向上）', {
+        segmentId: d.segmentId,
+        mqmCategory: d.mqmCategory,
+        mqmSeverity: d.mqmSeverity,
+      })
+    }
   }
   async updateSegmentStatus(
     segmentId: string,
