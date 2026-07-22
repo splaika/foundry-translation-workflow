@@ -384,6 +384,83 @@ Logic Apps の承認が Dataverse へ**自動書込**する形なら、監査グ
 
 ---
 
+## 10-c. レビューアプリの機能設計 — CAT ツールの型を継承
+
+§10・§10-b は「器」（UI と記録先）の話。ここではその「中身」（どんな画面機能を載せるか）を定める。レビューアプリは翻訳プロセスにおける **HITL 判断ノードそのもの**（§5）であって、後付けの QA 工程ではない。中身は翻訳業界で30年枯れた **CAT（Computer-Assisted Translation）ツール**の型をそのまま継承すればよく、再発明しない。**現代化は1点だけ** —— CAT の「MT サジェスト欄」を、本ワークフローのパイプライン出力＋その自己申告（QE スコア・critic フラグ・逆翻訳投票）に置き換える。これにより「全セグメント平等レビュー」をやめ、**機械が採点し並べる → 人は fail-closed とスコア低位だけ裁く**構造にできる（工数はセグメント数でなくフラグ数に比例）。
+
+**CAT の代表機能と本アプリでの写像**
+
+| CAT 機能 | 中身 | 本アプリでの写像 |
+|---|---|---|
+| セグメンテーション | 原文を文単位に分割し原文↔訳文を1:1整列 | パイプライン側で確定済（分類・タグ付け段の出力を継承） |
+| 対訳エディタ | 左=原文／右=訳文の2ペイン、行=セグメント | ★中核 UI（§10-b の裁定画面の実体） |
+| 翻訳メモリ（TM） | 過去の**承認済み**対訳DB。exact/fuzzy/context match | ICF・プロトコル定型文の再利用。検収の出口が TM の入口 |
+| 用語ベース（termbase） | 承認語彙。必須語・禁止語をフラグ | 既存 TSV glossary（7誤訳）。L-Term=fail-closed |
+| QA チェック（自動） | 用語・数値・タグ/書式・未訳・一貫性の機械検査 | 確定的突合（pipeline stage で全数実行）の結果表示 |
+| MT 統合 | 外部 MT サジェストを TM と同じ欄に提示 | ★**本パイプライン出力**がこの欄に来る |
+| Quality Estimation（QE） | 各セグメントの訳質を推定スコア化→要修正を優先 | ★triage の心臓。critic 信頼度×逆翻訳一致度を合成 |
+| LQA / MQM | 誤りをカテゴリ×重大度で構造記録し減点式でスコア | ★reject 時の理由入力＝critic 改善の燃料 |
+| コンコーダンス検索 | 原語・訳語を TM 横断で全文検索 | 過去確定訳の参照 |
+| プロパゲーション | 同一セグメントの訳を文書内で自動反映 | 反復セグメント（定型文）の一括処理 |
+| インコンテキスト プレビュー | 完成レイアウトを横で確認 | 体裁が要る文書のみ（後回し可） |
+| コメント/版管理/監査証跡 | 誰がいつ何を、レビュー履歴、電子署名 | ★§7 台帳がこの実体。Part 11 の担保層 |
+
+**パイプライン → レビュー層の受け渡し（review package）** —— アプリ設計の土台。パイプラインは訳文だけでなく、1セグメントあたり次を吐く：
+
+```
+segment_id, doc_id, order
+source_text        原文
+target_draft       パイプライン訳
+segment_type       分類ラベル（verbatim/coded/narrative 等）
+glossary_hits[]    {term, expected, applied?}      ← L-Term(fail-closed)
+critic_flags[]     {axis, severity, msg, mode:closed|open}
+qe_score           0-100（critic 信頼度 × 逆翻訳一致度の合成）
+backtranslation    逆翻訳文 + 投票結果
+provenance         {model, model_pin, pass, ts}    ← 「同一出力でなく品質担保」の根拠（§ 移植の鉄則）
+status             pending / auto-pass / need-review
+```
+
+**Triage エンジン**：優先度キュー ＝ `fail-closed フラグ有` ＞ `qe_score 低位` ＞ `advisory のみ` ＞ `auto-pass`。auto-pass 条件（全確定的突合通過 ∧ critic フラグ無 ∧ qe_score≥閾値）を満たすセグメントはデフォルト accept 候補として人はスキップ可（ただし「auto-pass を承認」も台帳に残す）。fail-open/closed は軸別（L-Term/L-Gov=closed＝赤／L-Style/L-Struct=open＝黄）で並び順が機械的に決まる。
+
+**アクション層**：accept（そのまま確定・一括可）／edit（**reason-for-change 必須**、任意で glossary/TM 昇格キューへ・**昇格は承認ゲート必須**）／reject（MQM で category×severity 構造化）／document sign-off（電子署名で文書確定＝Part 11）。
+
+**UI レイアウト（第一版）**
+
+```
+┌ ヘッダ: doc名 / 進捗(裁定n/N) / model_pin / [サインオフ] ─────────┐
+├ 左: Triage フィルタ ─┬─ 中央: 対訳グリッド ──────────┬ 右: 選択セグメント ┤
+│ ●要対応(赤) ●注意(黄) │ # 原文 / 訳文(編集可) / 状態    │ QE / critic / 逆翻訳 │
+│ ○auto-pass / 用語     │ ⚠フラグをインライン表示         │ [accept][edit][reject]│
+└──────────────────────┴────────────────────────────┴──────────────────┘
+```
+設計思想：**色＝統制ラベル**（赤=fail-closed 止める／黄=fail-open 注意／緑=auto-pass）。境界を規制系統に一致させる。編集は訳文セルに直書き（別窓に出さない）。
+
+## 10-d. 競合・市場ポジション（日本 / 製薬・CRO / COTOHA）
+
+**大前提：MT エンジンと CAT/TMS は別カテゴリ**（混同注意）。
+
+| | ① MT エンジン（翻訳を作る） | ② CAT / TMS（翻訳を裁く・管理する） |
+|---|---|---|
+| 例 | COTOHA・DeepL・Google・みらい翻訳・T-4OO | Trados・memoQ・Phrase(Memsource)・XTM・Smartling |
+| 機能 | 下訳生成・用語辞書登録・レイアウト保持 | TM・termbase・QAチェック・**QE・LQA/MQM・対訳エディタ・監査証跡** |
+| 役割 | 素材を吐く | 素材を人が裁く作業台 |
+
+本レビューアプリは②。QE/LQA/MQM/監査証跡は②の機能で、①の MT エンジンにはほぼ載らない。
+
+- **日本での普及度**：② は翻訳供給側（翻訳会社・翻訳者）で完全にスタンダード（Trados 圧倒的＞memoQ＞Phrase）。TM/termbase/QA はユビキタス、**LQA/MQM の点数化された正式プロセスは大手 LSP・エンタープライズ localization で標準**、中小・個人では QA止まりのことも多い。ただしこれらは"供給側が持つツール"で、発注側の事業会社が自前で持つものではないのが通常。
+- **製薬・CRO**：治験文書翻訳は Trados 中心の CAT が定着（PMDA/ICH が厳格さを駆動）。**ただし CAT を持つのは医薬専門の翻訳会社**であって製薬・CRO の社内ではない。製薬/CRO 側が社内で進めているのはセキュアな MT 導入（COTOHA/T-4OO/DeepL Pro で下訳）止まり。→ **製薬/CRO が「自社パイプライン＋統制付きレビュー層（＝裁定と監査証跡を握る②）を社内内製する」のはまだスタンダードではない = 本ワークフローの差別化領域**（規制を moat に、MT 導入で止まっている各社に対しレビュー層まで内製）。
+- **COTOHA は「この辺」を実装しているか / LLM か**：エンジンは **NMT**（NTT グループ みらい翻訳×NICT 共同開発）で **LLM ベースではない**（2025–2026 公開情報）。持つのは用語辞書登録（glossary 相当）まで、TM・QE・LQA/MQM・対訳レビュー・監査証跡は無い。= COTOHA は「① MT エンジン」＝本アプリの MT サジェスト欄に下訳を供給する外部 Tool の位置（DeepL と同じ役回り）で、②の代替にはならない。NTT の LLM は別ライン（`tsuzumi`/`tsuzumi 2`、7B・日本語特化・オンプレ）だが、COTOHA Translator のエンジンに載っている公開情報は無い（将来統合は要監視）。→ **COTOHA を使っても②のレビュー層は依然必要**。むしろ COTOHA を pipeline の一 MT エンジンとして差し込み、その出力を自社 QE/critic/監査層で裁く関係（本文書の「DeepL＝外部 Tool」と同型）。
+
+**この章の略語**
+- **CAT**（Computer-Assisted Translation）＝翻訳者を支援する編集環境。MT（機械翻訳）とは別物。
+- **TM**（Translation Memory）＝承認済み対訳の再利用DB。**termbase**＝承認用語集。
+- **QE**（Quality Estimation）＝正解を見ずに訳質を推定スコア化。
+- **LQA**（Linguistic Quality Assurance）＝訳を誤り分類に照らして客観採点するプロセス。**MQM**（Multidimensional Quality Metrics）＝その採点に使う誤り分類表（カテゴリ×重大度）。**DQF-MQM**＝TAUS の運用枠組み DQF ＋ MQM の統合、de facto 標準。
+- **MTPE**（Machine Translation Post-Editing）＝MT 出力を人が後編集する作業。QE 起点の選択的介入が 2026 の潮流。
+- **LSP**（Language Service Provider）＝翻訳会社。
+
+---
+
 ## 11. 導入ロードマップ
 
 ```mermaid
@@ -474,7 +551,6 @@ flowchart LR
 ---
 
 *Confidential | ©Seven to One, Inc.*
-
 </script>
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
