@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>レビューアプリ モックアップ — 治験翻訳ワークフロー</title>
+<style>
+  :root{
+    color-scheme: light dark;
+    --text:#1f2328; --muted:#59636e; --surface:#ffffff; --surface2:#f6f8fa; --border:#d0d7de;
+    --danger-bg:#fbeaea; --danger-fg:#a32d2d; --warn-bg:#faeeda; --warn-fg:#854f0b;
+    --ok-bg:#eaf3de; --ok-fg:#3b6d11; --accent-bg:#e6f1fb; --accent-fg:#185fa5;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+    --text:#e6edf3; --muted:#9198a1; --surface:#0d1117; --surface2:#161b22; --border:#30363d;
+    --danger-bg:#3a1a1a; --danger-fg:#ff9a9a; --warn-bg:#3a2e12; --warn-fg:#e9c07a;
+    --ok-bg:#17300a; --ok-fg:#9ece6a; --accent-bg:#0c2740; --accent-fg:#6cb6ff;
+  }}
+  :root[data-theme="dark"]{
+    --text:#e6edf3; --muted:#9198a1; --surface:#0d1117; --surface2:#161b22; --border:#30363d;
+    --danger-bg:#3a1a1a; --danger-fg:#ff9a9a; --warn-bg:#3a2e12; --warn-fg:#e9c07a;
+    --ok-bg:#17300a; --ok-fg:#9ece6a; --accent-bg:#0c2740; --accent-fg:#6cb6ff;
+  }
+  *{ box-sizing:border-box; }
+  body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Noto Sans JP",Meiryo,sans-serif;
+        margin:0; background:var(--surface2); color:var(--text); font-size:13px; line-height:1.6; }
+  .wrap{ max-width:1080px; margin:0 auto; padding:16px; }
+  .nav{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .nav h1{ font-size:15px; font-weight:600; margin:0; }
+  .tabs{ display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  button{ font:inherit; cursor:pointer; border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:6px; padding:5px 10px; }
+  button:hover{ background:var(--surface2); }
+  .tabs button{ border:none; border-radius:0; background:transparent; }
+  .tabs button.on{ background:var(--accent-bg); color:var(--accent-fg); }
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .bar{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .chip{ font-size:12px; border:1px solid var(--border); background:transparent; border-radius:6px; padding:3px 9px; }
+  .dot{ display:inline-block; width:9px; height:9px; border-radius:50%; }
+  .seg{ cursor:pointer; padding:1px 2px; border-radius:3px; }
+  .panegrid{ display:grid; }
+  .pane{ padding:14px 16px; }
+  .pane h4{ font-size:12px; font-weight:600; margin:0 0 3px; }
+  .pane .doctitle{ font-size:15px; font-weight:600; }
+  .pane .docsub{ font-size:11px; color:var(--muted); margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:8px; }
+  .pane p{ margin:0 0 12px; line-height:1.85; }
+  .muted{ color:var(--muted); }
+  .strip{ padding:11px 14px; border-top:1px solid var(--border); }
+  input[type=range]{ width:100%; }
+  .pill{ font-size:11px; border-radius:6px; padding:2px 8px; }
+  .row{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .band{ display:flex; height:26px; border-radius:6px; overflow:hidden; font-size:11px; }
+  .band>div{ display:flex; align-items:center; justify-content:center; }
+  .hide{ display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <h1>治験翻訳 レビューアプリ — モックアップ</h1>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <div class="tabs">
+        <button id="t-review" class="on">レビュー画面</button>
+        <button id="t-settings">スーパーユーザー設定</button>
+      </div>
+      <button id="theme">◐ テーマ</button>
+    </div>
+  </div>
+  <p class="muted" style="margin-top:-6px; margin-bottom:14px; font-size:12px;">※ 静的モックアップ（ダミーデータ）。実装イメージの確認用。原文(EN)⇄対訳(JA)を Word 体裁のまま並置し、QE 帯で絞って承認する。</p>
+
+  <!-- ===== REVIEW SCREEN ===== -->
+  <div id="screen-review">
+    <div class="card">
+      <div class="bar">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="pill" style="border:1px solid var(--border); color:var(--muted);">Teams タブ / 単独アプリ 共通</span>
+          <b>protocol_v3</b><span class="muted">EN ⇄ JA</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <div class="tabs" style="border:1px solid var(--border);">
+            <button id="v-doc" class="on">対訳ドキュメント</button>
+            <button id="v-grid">対訳グリッド</button>
+          </div>
+          <div class="tabs" id="lay" style="border:1px solid var(--border);">
+            <button id="l-lr" class="on" title="左右">▮▮</button>
+            <button id="l-tb" title="上下">▬</button>
+          </div>
+          <span class="muted">承認 <b id="prog">1</b>/4</span>
+          <button style="background:var(--accent-bg); color:var(--accent-fg); border-color:var(--accent-fg);">サインオフ</button>
+        </div>
+      </div>
+
+      <div class="bar" style="border-bottom:1px solid var(--border);">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span class="muted">QE 帯</span>
+          <div id="chips" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+        </div>
+        <div id="stepper" style="display:none; align-items:center; gap:6px;">
+          <button id="st-prev">‹</button>
+          <span id="st-pos" class="muted" style="min-width:70px; text-align:center;"></span>
+          <button id="st-next">次へ ›</button>
+        </div>
+      </div>
+
+      <div id="docarea" class="panegrid">
+        <div id="pane-en" class="pane"></div>
+        <div id="pane-ja" class="pane"></div>
+      </div>
+      <div id="gridarea" class="pane hide"></div>
+
+      <div id="strip" class="strip"></div>
+    </div>
+    <p class="muted" style="font-size:11px; margin-top:8px;">QE 帯で「要対応 → 注意」の順に ‹ › で順送り。該当箇所クリックで両ペイン連動ハイライト → 下部で QE 確認 → 承認。ハイライトは背景色のみ（<span style="color:var(--danger-fg);">赤=要対応</span>・<span style="color:var(--warn-fg);">黄=注意</span>・<span style="color:var(--ok-fg);">緑=承認済</span>）。</p>
+  </div>
+
+  <!-- ===== SETTINGS SCREEN ===== -->
+  <div id="screen-settings" class="hide">
+    <div class="card" style="padding:16px 18px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+        <b style="font-size:15px;">QE 閾値設定</b>
+        <span class="pill" style="background:var(--warn-bg); color:var(--warn-fg);">スーパーユーザーのみ</span>
+      </div>
+      <p class="muted" style="margin-top:0;">プロジェクト / 文書種別ごとに設定。この境界で triage の並びと auto-pass が決まる。</p>
+      <div id="band" class="band" style="margin-bottom:6px;"></div>
+      <div style="display:flex; justify-content:space-between; font-size:10px;" class="muted"><span>QE 0</span><span>100</span></div>
+      <div class="row" style="margin-top:16px;"><span style="width:140px;"><span style="color:var(--danger-fg);">●</span> 要対応 の上限</span><input id="a" type="range" min="1" max="99" step="1" value="60"><span id="a-out" style="min-width:70px; text-align:right;">QE &lt; 60</span></div>
+      <div class="row"><span style="width:140px;"><span style="color:var(--warn-fg);">●</span> 注意 の上限</span><input id="b" type="range" min="2" max="100" step="1" value="85"><span id="b-out" style="min-width:70px; text-align:right;">〜 84</span></div>
+      <div style="border-top:1px solid var(--border); padding-top:12px; margin-bottom:8px;"><b style="font-size:12px;">軸オーバーライド（QE 値に関わらず要対応へ固定）</b></div>
+      <div id="axes" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;"></div>
+      <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--border); padding-top:12px;">
+        <span>auto-pass を有効化 <span class="muted">（良好帯を既定 accept 候補に）</span></span>
+        <button id="ap" class="pill" style="background:var(--ok-bg); color:var(--ok-fg);">ON</button>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:16px;">
+        <span class="muted" style="font-size:11px;">閾値変更は Settings 監査ログに記録（誰が・いつ・旧→新）</span>
+        <div style="display:flex; gap:6px;"><button>取消</button><button style="background:var(--accent-bg); color:var(--accent-fg); border-color:var(--accent-fg);">保存</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const segs=[
+ {id:0,h:"2.1 主要目的",en:"The primary estimand is defined as the change in symptom score at week 12 in the randomized population.",ja:"本試験の主要なエスティマンドは、無作為化された全被験者集団における投与12週後の症状スコア変化量として定義される。",k:"red",qe:42,axis:"L-Term",flag:"用語逸脱: estimand → 期待「推定値」／出力「エスティマンド」",back:"The primary estimand is defined as the change in symptom score at week 12...",st:"pending"},
+ {id:1,h:"3.2 安全性報告",en:"Any serious adverse event must be reported to the sponsor within 24 hours of awareness.",ja:"重篤な有害事象は、治験責任医師が認知してから24時間以内に治験依頼者へ報告しなければならない。",k:"green",qe:96,axis:"—",flag:"全チェック通過",back:"Any serious adverse event must be reported to the sponsor within 24 hours of awareness.",st:"approved"},
+ {id:2,h:"3.3 無作為割付",en:"Subjects will be randomized 2:1 to the treatment or placebo group.",ja:"被験者は2対1の割合で治療群またはプラセボ群に割り付けられる。",k:"amber",qe:71,axis:"L-Style",flag:"文体: 受動態の連続（advisory・訳は通す）",back:"Subjects are randomized in a 2:1 ratio to treatment or placebo.",st:"pending"},
+ {id:3,h:"4.1 同意取得",en:"Written informed consent is obtained prior to any study procedure.",ja:"いかなる治験手技に先立っても、書面によるインフォームド・コンセントを取得する。",k:"red",qe:55,axis:"L-Term",flag:"用語逸脱: informed consent → 期待「同意」／出力「インフォームド・コンセント」",back:"Written informed consent is obtained before any procedure.",st:"pending"},
+];
+const dc={red:'var(--danger-fg)',amber:'var(--warn-fg)',green:'var(--ok-fg)'};
+const bgc={red:'var(--danger-bg)',amber:'var(--warn-bg)',green:'var(--ok-bg)'};
+const BANDS=[
+ {key:'red',label:'要対応',sub:'QE<60',match:s=>s.st!=='approved'&&s.qe<60},
+ {key:'amber',label:'注意',sub:'60–84',match:s=>s.st!=='approved'&&s.qe>=60&&s.qe<85},
+ {key:'done',label:'承認済',sub:'',match:s=>s.st==='approved'},
+ {key:'all',label:'すべて',sub:'',match:s=>true},
+];
+let cur=0, filt='red', stepIdx=0, view='doc', layout='lr';
+const $=id=>document.getElementById(id);
+function bandMatch(s){return BANDS.find(b=>b.key===filt).match(s);}
+function spanStyle(s){
+ let bg = s.st==='approved' ? bgc.green : ((s.k==='red'||s.k==='amber') ? bgc[s.k] : '');
+ let css = bg ? ('background:'+bg+';') : '';
+ if(filt!=='all' && !bandMatch(s)) css+='opacity:0.32;';
+ return css;
+}
+function buildPane(lang){
+ const t = lang==='en'
+  ? '<div class="doctitle">Clinical Study Protocol v3.0</div><div class="docsub">Source (EN)</div>'
+  : '<div class="doctitle">治験実施計画書 第3.0版</div><div class="docsub">対訳 (JA)</div>';
+ return t + segs.map(s=>{const dim=(filt!=='all'&&!bandMatch(s))?'opacity:0.32;':'';return `<h4 style="${dim}">${s.h}</h4><p><span class="seg ${lang}-${s.id}" data-id="${s.id}" style="${spanStyle(s)}">${lang==='en'?s.en:s.ja}</span></p>`;}).join('');
+}
+function renderPanes(){$('pane-en').innerHTML=buildPane('en');$('pane-ja').innerHTML=buildPane('ja');bindSegs();highlightCur();}
+function bindSegs(){document.querySelectorAll('.seg').forEach(e=>e.onclick=()=>select(+e.dataset.id));document.querySelectorAll('.grow').forEach(e=>e.onclick=()=>select(+e.dataset.id));}
+function highlightCur(){document.querySelectorAll('.seg').forEach(e=>e.style.outline=(+e.dataset.id===cur)?'2px solid var(--accent-fg)':'');}
+function select(id){cur=id;highlightCur();renderStrip();}
+function matches(){return segs.filter(bandMatch);}
+function renderChips(){
+ $('chips').innerHTML=BANDS.map(b=>{const n=segs.filter(b.match).length;const on=filt===b.key;const fg=b.key==='red'?'var(--danger-fg)':b.key==='amber'?'var(--warn-fg)':b.key==='done'?'var(--ok-fg)':'var(--muted)';const bg=b.key==='red'?'var(--danger-bg)':b.key==='amber'?'var(--warn-bg)':b.key==='done'?'var(--ok-bg)':'var(--accent-bg)';return `<button class="chip cf" data-k="${b.key}" style="border-color:${on?fg:'var(--border)'};background:${on?bg:'transparent'};color:${on?fg:'var(--text)'};">${b.label}${b.sub?' <span class="muted" style="font-size:10px;">'+b.sub+'</span>':''} · ${n}</button>`;}).join('');
+ document.querySelectorAll('.cf').forEach(e=>e.onclick=()=>{filt=e.dataset.k;stepIdx=0;renderChips();renderStepper();refreshView();const m=matches();if(m.length)select(m[0].id);});
+}
+function renderStepper(){const sp=$('stepper');if(filt==='all'){sp.style.display='none';return;}sp.style.display='flex';const m=matches();$('st-pos').textContent=m.length?((stepIdx+1)+' / '+m.length+' 件'):'0 件';}
+function step(d){const m=matches();if(!m.length)return;stepIdx=(stepIdx+d+m.length)%m.length;const s=m[stepIdx];select(s.id);renderStepper();const el=document.querySelector('.seg.ja-'+s.id)||document.querySelector('.seg.en-'+s.id);if(el)el.scrollIntoView({block:'center'});}
+function renderStrip(){
+ const s=segs[cur];const qcol=s.qe<60?'var(--danger-fg)':s.qe<85?'var(--warn-fg)':'var(--ok-fg)';const ap=s.st==='approved';
+ $('strip').innerHTML=`
+  <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+    <div style="text-align:center; min-width:56px;"><div style="font-size:22px; font-weight:600; color:${qcol}; line-height:1;">${s.qe}</div><div class="muted" style="font-size:10px;">QE / 100</div></div>
+    <div style="flex:1; min-width:200px;">
+      <div class="muted" style="font-size:11px;">${s.h} ・ critic: <span style="color:${s.k==='green'?'var(--ok-fg)':dc[s.k]};">${s.axis}</span></div>
+      <div style="font-size:12px;">${s.flag}</div>
+      <div class="muted" style="font-size:11px; margin-top:4px;">逆翻訳: ${s.back}</div>
+    </div>
+    <div style="display:flex; gap:6px; align-items:center;">
+      ${ap?'<span style="color:var(--ok-fg); font-size:12px;">✓ 承認済</span><button id="b-undo">取消</button>':'<button id="b-app" style="background:var(--ok-bg); color:var(--ok-fg); border-color:var(--ok-fg);">承認</button><button id="b-edit">修正</button><button id="b-rej">却下</button>'}
+    </div>
+  </div>
+  <div class="muted" style="font-size:10px; margin-top:7px;">承認/修正/却下は Decisions リストへ追記（誰が・いつ・理由）＝監査証跡（Dataverse 互換）</div>`;
+ const a=$('b-app');if(a)a.onclick=()=>{s.st='approved';commit();};
+ const u=$('b-undo');if(u)u.onclick=()=>{s.st='pending';commit();};
+}
+function commit(){renderChips();renderStepper();refreshView();renderStrip();$('prog').textContent=segs.filter(x=>x.st==='approved').length;}
+function renderGrid(){$('gridarea').innerHTML='<div style="display:grid; grid-template-columns:1fr 1fr 26px; font-size:11px; padding:6px 4px; border-bottom:1px solid var(--border);" class="muted"><span>原文 (EN)</span><span>訳文 (JA)</span><span></span></div>'+segs.map(s=>{const dim=(filt!=='all'&&!bandMatch(s))?'opacity:0.32;':'';return `<div class="grow" data-id="${s.id}" style="display:grid; grid-template-columns:1fr 1fr 26px; gap:6px; padding:8px 4px; border-bottom:1px solid var(--border); cursor:pointer; font-size:12px; ${dim}"><span class="muted">${s.en}</span><span>${s.ja}</span><span style="text-align:center;"><span class="dot" style="background:${s.st==='approved'?'var(--ok-fg)':(dc[s.k]||'var(--border)')};"></span></span></div>`;}).join('');bindSegs();highlightCur();}
+function refreshView(){if(view==='doc')renderPanes();else renderGrid();}
+function tab(el,on){el.classList.toggle('on',on);}
+function applyLayout(){const da=$('docarea');const en=$('pane-en');da.style.gridTemplateColumns=layout==='lr'?'1fr 1fr':'1fr';en.style.borderRight=layout==='lr'?'1px solid var(--border)':'none';en.style.borderBottom=layout==='tb'?'1px solid var(--border)':'none';tab($('l-lr'),layout==='lr');tab($('l-tb'),layout==='tb');}
+function setView(doc){view=doc?'doc':'grid';$('docarea').style.display=doc?'grid':'none';$('gridarea').classList.toggle('hide',doc);$('lay').style.display=doc?'inline-flex':'none';tab($('v-doc'),doc);tab($('v-grid'),!doc);refreshView();}
+$('v-doc').onclick=()=>setView(true);$('v-grid').onclick=()=>setView(false);
+$('l-lr').onclick=()=>{layout='lr';applyLayout();};$('l-tb').onclick=()=>{layout='tb';applyLayout();};
+$('st-prev').onclick=()=>step(-1);$('st-next').onclick=()=>step(1);
+
+// settings
+const a=$('a'),b=$('b'),ao=$('a-out'),bo=$('b-out'),band=$('band');
+function drawBand(){
+ let av=+a.value,bv=+b.value;if(av>bv-1){if(document.activeElement===a){bv=av+1;b.value=bv;}else{av=bv-1;a.value=av;}}
+ ao.textContent='QE < '+av;bo.textContent=av+' 〜 '+(bv-1);
+ band.innerHTML='<div style="width:'+av+'%; background:var(--danger-bg); color:var(--danger-fg);">要対応</div><div style="width:'+(bv-av)+'%; background:var(--warn-bg); color:var(--warn-fg);">注意</div><div style="width:'+(100-bv)+'%; background:var(--ok-bg); color:var(--ok-fg);">良好</div>';
+}
+a.oninput=drawBand;b.oninput=drawBand;
+const AX=[{k:'L-Term',t:'用語',on:true},{k:'L-Gov',t:'規制',on:true},{k:'L-Style',t:'文体',on:false},{k:'L-Struct',t:'構造',on:false}];
+$('axes').innerHTML=AX.map(x=>`<button class="chip ax" data-on="${x.on}" style="${x.on?'background:var(--danger-bg); color:var(--danger-fg); border-color:var(--danger-fg);':''}">${x.on?'🔒':'○'} ${x.k} ${x.t}</button>`).join('');
+document.querySelectorAll('.ax').forEach(e=>e.onclick=()=>{const on=e.dataset.on!=='true';e.dataset.on=on;e.style.background=on?'var(--danger-bg)':'transparent';e.style.color=on?'var(--danger-fg)':'var(--text)';e.style.borderColor=on?'var(--danger-fg)':'var(--border)';e.textContent=(on?'🔒':'○')+' '+e.textContent.slice(2);});
+let apOn=true;$('ap').onclick=()=>{apOn=!apOn;$('ap').textContent=apOn?'ON':'OFF';$('ap').style.background=apOn?'var(--ok-bg)':'transparent';$('ap').style.color=apOn?'var(--ok-fg)':'var(--muted)';};
+
+// tabs + theme
+function screen(rev){$('screen-review').classList.toggle('hide',!rev);$('screen-settings').classList.toggle('hide',rev);tab($('t-review'),rev);tab($('t-settings'),!rev);}
+$('t-review').onclick=()=>screen(true);$('t-settings').onclick=()=>screen(false);
+$('theme').onclick=()=>{const r=document.documentElement;const cur=r.getAttribute('data-theme');const dark=cur? cur==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;r.setAttribute('data-theme',dark?'light':'dark');};
+
+renderChips();renderStepper();applyLayout();setView(true);drawBand();
+(function(){const m=matches();cur=m.length?m[0].id:0;select(cur);$('prog').textContent=segs.filter(x=>x.st==='approved').length;})();
+</script>
+</body>
+</html>
