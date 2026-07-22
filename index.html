@@ -461,6 +461,98 @@ status             pending / auto-pass / need-review
 
 ---
 
+## 10-e. レビューアプリ 実装設計（React + SharePoint / Dataverse-ready）
+
+§10-c は「どんな機能を載せるか」、本節は「React + SharePoint でどう実装するか」。CTN Assist で確立した GxP パターン（ALCOA+・provenance・Entra 署名・テナント主権）を継承しつつ、器だけ React にする。第一版は SharePoint、監査要件が立ったら Dataverse（§8・§10-b の判断軸）。
+
+### レビュー画面の 3 ビュー（学習コスト最小が最優先）
+
+- **★対訳ドキュメント（核心）**：原文ファイル(EN)と対訳ファイル(JA)を **Word 体裁のまま左右 or 上下に並置**（トグル・スクロール同期）。該当箇所クリックで**両ペインの同一セグメントが連動ハイライト**。CAT の対訳エディタを"グリッドでなく文書レイアウト"でやる形で、普段の Word 突き合わせの延長＝学習コスト最小。
+- **対訳グリッド**：行=セグメントの bilingual grid（§10-c の対訳エディタ）。
+- **単一文書ビュー**：訳文のみ Word 体裁＋要注意箇所ハイライト。
+- **ハイライト表記**：**背景色のみ（下線なし）**。要注意箇所のみ着色（赤=要対応／黄=注意／緑=承認済）、**auto-pass は無印**（普段どおり読め、例外だけ目立つ）。
+
+### 「Word 体裁維持 × セグメント分解」の両立
+
+分解は内部表現に留め、人が見るのは元文書のまま。両者を結ぶのが **文字オフセット anchor**。対訳ドキュメントでは **原文 offset ↔ 訳文 offset のペア（bilingual alignment）** を持たせる（＝③翻訳段・タグ付けが出す対訳セグメント対）。
+
+| 描画方式 | 体裁忠実度 | ハイライト重ね | 第一版 |
+|---|---|---|---|
+| ① mammoth.js で docx→HTML 自前描画 | 中（見出し・段落・表は再現） | ◎ 自前 DOM で span 自在 | **推奨** |
+| ② Office Online / SharePoint 埋込 iframe | ◎ 完全 | ✗ iframe に手を出せず不可 | 「原本を Word で開く」リンクに留める |
+
+- **実装リスク**：EN/JA は文境界が 1:1 で揃わない（1 EN 文 → 2 JA 文 等）。その場合は **1:N グループ単位でハイライト**（タグ付け段が alignment を group 単位で出す）。mammoth の段落・文マッピング精度とセットで詰める、対訳ドキュメント方式唯一の難所。
+
+### QE 帯 triage ＋ スーパーユーザー閾値設定
+
+- **帯フィルタ**：`要対応(QE<60) → 注意(60–84) → 承認済` のチップ＋前後ステッパー。要対応を捌き終えたら注意へ、の順送り。該当外は淡色化（文脈は残す）。
+- **閾値はスーパーユーザー設定**：プロジェクト／文書種別ごとに Config リスト（SharePoint→Dataverse 互換）へ保存。RBAC でスーパーユーザーロールのみ開放。
+- **軸オーバーライドが QE に優先**：L-Term(用語)・L-Gov(規制)=fail-closed 固定で、QE がいくら高くても要対応へ落とす。閾値はグレーゾーンの振り分けだけを決め、規制上外せない軸は緩められない。
+- **閾値変更そのものを監査**：閾値を緩める＝auto-pass（人が見ない範囲）が広がる＝規制的に意味のある操作。変更履歴（誰が・いつ・旧→新）を Settings 監査ログに残す。
+
+### アーキテクチャ（アダプタで Dataverse 差し替え）
+
+```
+[React SPA] ── MSAL (Entra ID SSO)
+  UI: 対訳ドキュメント / 対訳グリッド / 裁定ストリップ / スーパーユーザー設定
+  └─ IReviewRepository（抽象: listQueue/getSegments/postDecision/signOff/getConfig）
+        ├─ SharePointAdapter ──(Microsoft Graph)──> SharePoint リスト   ← 第一版
+        └─ DataverseAdapter  ──> Dataverse                             ← 将来（差し替えは1層だけ）
+```
+
+- **リスト**：`Documents` / `Segments`（review package＋offset ペア）/ `Decisions`（**追記のみ・削除権限剥奪**＝監査）/ `PromotionQueue`（用語昇格・承認ゲート）/ `Config`（QE 閾値・軸オーバーライド）。列名・型・選択肢値を **Dataverse 互換**に（§7）→ 移行は列マッピングで済む。
+- UI とロジックは `IReviewRepository` の内側を知らない。Dataverse 移行はアダプタ差し替えだけで無改修。
+
+### 認可（Entra ID）
+
+- 「ロールを切る」は Entra（＝既存 M365 テナントの ID 管理、新規インフラ不要）で、**顧客テナント内で顧客管理者が実施**（テナント主権と一致）。アプリは読む側。
+- **3 ロール層の切り分け**：Entra ディレクトリロール（Global Admin 等・使わない）／Azure RBAC（リソース権限・使わない）／**アプリ内認可（App Role or セキュリティグループ・これ）**。
+- **推奨=App Role**：アプリ登録に `SuperUser` ロールを定義 → エンタープライズアプリでユーザー/グループに割当 → トークンの `roles` クレームを React が見て設定画面を開放。セキュリティグループ方式（`groups` クレーム）は手軽だが GUID 管理＋トークン肥大に注意。どちらも人の出し入れだけで権限が変わり、コード改修不要。
+
+### Foundry アウトプットの取り込み（非同期 HITL）
+
+**UI が Foundry を叩くのではなく、Foundry が SharePoint に置く → UI が拾う**（§6 request_info / checkpoint と整合）。
+
+```
+Foundry 完了 → Logic Apps/Functions が書込:
+  原本 .docx → ドキュメントライブラリ / review package(offset ペア含む) → Segments / Documents.status=need-review + checkpoint_id
+React UI ─ Graph で need-review を購読 → キュー → 裁定 → Decisions 追記 ＋ status=signed
+Logic Apps が status 変化検知 → checkpoint_id で Foundry resume → 最終出力
+```
+
+- UI は Foundry を直接知らない → §12 の Workflows 廃止（2026-12）→Agent Framework 移行に UI が巻き込まれない。
+- 書込を Logic Apps 経由にすると**レビュアーに対話ライセンス不要**（人数課金回避、§10-b）。
+- **offset ペア付与はタグ付け段の責務＝取り込み仕様の最優先**（無いと対訳ドキュメントのハイライトが成立しない）。
+
+### フィードバックループ（ナレッジ蓄積）— レビュー＝フライホイールの燃料
+
+| レビュー操作 | 溜まる先 | 効き方 |
+|---|---|---|
+| 承認した訳 | 翻訳メモリ TM | 次回 exact/fuzzy 再利用 |
+| edit（用語直し） | 用語集 termbase へ**昇格キュー** | 次回から決定論的に正訳語 |
+| reject（MQM 分類） | critic 改善コーパス（few-shot / AdaptCT） | critic が同型誤りを検出しやすく |
+
+- **LLM 自動再学習ではない**：溜まるのは**グラウンディング資産**（TM・用語集・few-shot）で、次回 run の入力に効く＝モデル pin を崩さず品質だけ上がる（§ 移植と精度の鉄則）。
+- **承認なき自動昇格は禁止**（無断昇格＝フライホイール逆回転）。用語昇格は PromotionQueue → スーパーユーザー/用語責任者の承認 → P2 入り。
+- 書き戻しは Decisions リスト → Logic Apps が承認分を harvest（非同期）。
+
+### 単独アプリ vs Teams（両対応）
+
+- **同一 React SPA が実体、Teams は"包み"**。Static Web Apps の URL を (a) ブラウザ直＝単独アプリ／(b) Teams タブ manifest で包む＝Teams タブ。ビルド同一。
+- **Teams 固有コードは認証初期化の1点だけ**：起動時に Teams コンテキストを feature-detect → Teams 内なら `@microsoft/teams-js` の SSO、外なら通常 MSAL。Teams 依存を1ファイルに隔離すれば**単独アプリは Teams パッケージ無しで完全動作**。
+- 通知は Adaptive Card（軽い文書単位サインオフはカード完結、重い裁定はタブへ deep-link）。外部レビュアー=単独 Web／社内=Teams タブ の併用可。
+
+**この節の略語**
+- **SPA**（Single Page Application）＝1枚ページで動く Web アプリ。React の典型形。
+- **MSAL**（Microsoft Authentication Library）＝Entra ID サインイン用ライブラリ。
+- **App Role**＝アプリ登録に定義するアプリ固有の役割。トークンの `roles` クレームで受け取る。
+- **offset / anchor**＝原文・訳文中の文字位置。セグメントと元文書を結ぶ。
+- **bilingual alignment**＝原文セグメントと訳文セグメントの対応付け（1:1 or 1:N）。
+- **TM**（Translation Memory）＝承認済み対訳の再利用DB。**termbase**＝承認用語集。
+- **teams-js**（@microsoft/teams-js）＝Teams タブから SSO・コンテキスト取得する SDK。
+
+---
+
 ## 11. 導入ロードマップ
 
 ```mermaid
