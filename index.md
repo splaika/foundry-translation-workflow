@@ -419,6 +419,8 @@ status             pending / auto-pass / need-review
 
 §10-c は「どんな機能を載せるか」、本節は「React + SharePoint でどう実装するか」。CTN Assist で確立した GxP パターン（ALCOA+・provenance・Entra 署名・テナント主権）を継承しつつ、器だけ React にする。第一版は SharePoint、監査要件が立ったら Dataverse（§8・§10-b の判断軸）。
 
+> 💻 **スターター実装（メンバー引き渡し用・本節を実コードにしたもの）**: [`review-app/`](review-app/) — React + SharePoint(Dataverse-ready) の動くコード一式。`cd review-app && npm install && npm run dev` で mock データのまま即起動（SharePoint/Entra 不要）。データ層は `IReviewRepository` 抽象で Mock→SharePoint→Dataverse を差し替え。台帳プロビジョニング（`provisioning/`）・Foundry 取り込み契約（`ingestion/review-package.schema.json`）・**M0–M6 構築手順**（[`review-app/docs/BUILD_GUIDE.md`](review-app/docs/BUILD_GUIDE.md)）まで同梱。動く UI 単体イメージは [mockups/review-app.html](mockups/review-app.html)。
+
 ### レビュー画面の 3 ビュー（学習コスト最小が最優先）
 
 - **★対訳ドキュメント（核心）**：原文ファイル(EN)と対訳ファイル(JA)を **Word 体裁のまま左右 or 上下に並置**（トグル・スクロール同期）。該当箇所クリックで**両ペインの同一セグメントが連動ハイライト**。CAT の対訳エディタを"グリッドでなく文書レイアウト"でやる形で、普段の Word 突き合わせの延長＝学習コスト最小。

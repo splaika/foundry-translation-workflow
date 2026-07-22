@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ReviewPackage",
+  "description": "Foundry パイプラインがレビュー層へ渡す 1 文書分のデータ契約。Segments リスト(PackageJson 列)へ格納される。",
+  "type": "object",
+  "required": ["docId", "name", "modelPin", "segments"],
+  "properties": {
+    "docId": { "type": "string" },
+    "name": { "type": "string" },
+    "sourceDocxUrl": { "type": "string" },
+    "targetDocxUrl": { "type": "string" },
+    "modelPin": { "type": "string", "description": "使用モデルの固定バージョン（Part 11 説明の根拠）" },
+    "checkpointId": { "type": "string", "description": "Agent Framework の resume 用" },
+    "segments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["segmentId", "order", "sourceText", "targetDraft", "qeScore"],
+        "properties": {
+          "segmentId": { "type": "string" },
+          "order": { "type": "integer" },
+          "segmentType": { "type": "string", "enum": ["verbatim", "coded", "narrative"] },
+          "sourceText": { "type": "string" },
+          "targetDraft": { "type": "string" },
+          "sourceSpan": { "$ref": "#/definitions/span" },
+          "targetSpan": { "$ref": "#/definitions/span" },
+          "groupId": { "type": "string", "description": "1:N alignment の束ね ID" },
+          "qeScore": { "type": "number", "minimum": 0, "maximum": 100 },
+          "backTranslation": { "type": "string" },
+          "glossaryHits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "term": { "type": "string" },
+                "expected": { "type": "string" },
+                "applied": { "type": "boolean" }
+              }
+            }
+          },
+          "criticFlags": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "axis": { "type": "string", "enum": ["L-Term", "L-Gov", "L-Style", "L-Struct"] },
+                "severity": { "type": "string", "enum": ["critical", "major", "minor", "neutral"] },
+                "message": { "type": "string" },
+                "mode": { "type": "string", "enum": ["closed", "open"] }
+              }
+            }
+          },
+          "provenance": {
+            "type": "object",
+            "properties": {
+              "model": { "type": "string" },
+              "modelPin": { "type": "string" },
+              "pass": { "type": "integer" },
+              "ts": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "span": {
+      "type": "object",
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "type": "integer" },
+        "end": { "type": "integer" }
+      },
+      "description": "描画後プレーンテキスト上の文字オフセット。原文/訳文それぞれに持つ＝bilingual alignment。"
+    }
+  }
+}

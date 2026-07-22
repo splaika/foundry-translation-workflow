@@ -1,0 +1,43 @@
+{
+  "docId": "doc-protocol-v3",
+  "name": "protocol_v3.docx",
+  "modelPin": "gpt-4o-2024-08",
+  "checkpointId": "chk-abc123",
+  "segments": [
+    {
+      "segmentId": "seg-0",
+      "order": 0,
+      "segmentType": "narrative",
+      "sourceText": "The primary estimand is defined as the change in symptom score at week 12 in the randomized population.",
+      "targetDraft": "本試験の主要なエスティマンドは、無作為化された全被験者集団における投与12週後の症状スコア変化量として定義される。",
+      "qeScore": 42,
+      "backTranslation": "The primary estimand is defined as the change in symptom score at week 12...",
+      "glossaryHits": [{ "term": "estimand", "expected": "推定値", "applied": false }],
+      "criticFlags": [{ "axis": "L-Term", "severity": "major", "message": "用語逸脱: estimand → 期待「推定値」／出力「エスティマンド」", "mode": "closed" }],
+      "provenance": { "model": "gpt-4o", "modelPin": "gpt-4o-2024-08", "pass": 2, "ts": "2026-07-22T00:00:00Z" }
+    },
+    {
+      "segmentId": "seg-1",
+      "order": 1,
+      "segmentType": "verbatim",
+      "sourceText": "Any serious adverse event must be reported to the sponsor within 24 hours of awareness.",
+      "targetDraft": "重篤な有害事象は、治験責任医師が認知してから24時間以内に治験依頼者へ報告しなければならない。",
+      "qeScore": 96,
+      "glossaryHits": [],
+      "criticFlags": [],
+      "provenance": { "model": "gpt-4o", "modelPin": "gpt-4o-2024-08", "pass": 2, "ts": "2026-07-22T00:00:00Z" }
+    },
+    {
+      "segmentId": "seg-3",
+      "order": 3,
+      "segmentType": "narrative",
+      "sourceText": "Written informed consent is obtained prior to any study procedure.",
+      "targetDraft": "いかなる治験手技に先立っても、書面によるインフォームド・コンセントを取得する。",
+      "qeScore": 55,
+      "backTranslation": "Written informed consent is obtained before any procedure.",
+      "glossaryHits": [{ "term": "informed consent", "expected": "同意", "applied": false }],
+      "criticFlags": [{ "axis": "L-Term", "severity": "major", "message": "用語逸脱: informed consent → 期待「同意」／出力「インフォームド・コンセント」", "mode": "closed" }],
+      "provenance": { "model": "gpt-4o", "modelPin": "gpt-4o-2024-08", "pass": 2, "ts": "2026-07-22T00:00:00Z" }
+    }
+  ]
+}

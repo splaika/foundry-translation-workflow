@@ -13,6 +13,7 @@
 | `.nojekyll` | Jekyll 処理を無効化し、ファイルをそのまま静的配信する |
 | `robots.txt` | クローラ拒否(補助。実効的な検索避けは各 HTML の `noindex` メタタグ) |
 | `mockups/review-app.html` | レビューアプリの動くモックアップ(対訳ドキュメント＋QE 帯フィルタ＋スーパーユーザー設定)。単独で開ける・外部依存なし・ダーク対応。設計サマリー §10-e から参照 |
+| `review-app/` | **レビューアプリ スターター実装**(React + SharePoint / Dataverse-ready)。`npm install && npm run dev` で mock データ起動。構築手順は `review-app/docs/BUILD_GUIDE.md`(M0–M6)。メンバー引き渡し用 |
 
 ## 公開手順(private + 検索避け)
 
