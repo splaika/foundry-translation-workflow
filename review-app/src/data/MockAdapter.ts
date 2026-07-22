@@ -21,8 +21,19 @@ export class MockAdapter implements IReviewRepository {
   }
   async postDecision(d: Decision): Promise<void> {
     this.decisions.push(d)
+    // ①監査（追記のみ）
     // eslint-disable-next-line no-console
-    console.info('[Decisions 追記]', d)
+    console.info('[① Decisions 追記/監査]', { action: d.action, before: d.before, after: d.after, reason: d.reason, actor: d.actor })
+    // ②翻訳メモリ: 承認/確定した訳を対訳ペアとして蓄積（実運用は Logic Apps が harvest）
+    if (d.action === 'accept' || d.action === 'edit') {
+      // eslint-disable-next-line no-console
+      console.info('[② 翻訳メモリ(TM) に対訳追加]', { source: '(EN)', target: d.after ?? d.before })
+    }
+    // ③用語集 昇格キュー: 承認ゲート経由（自動適用しない）
+    if (d.promoteToGlossary) {
+      // eslint-disable-next-line no-console
+      console.info('[③ 用語集 昇格キュー(PromotionQueue)]', { status: '承認待ち(gate)', note: '用語責任者の承認まで自動適用しない' })
+    }
   }
   async updateSegmentStatus(
     segmentId: string,

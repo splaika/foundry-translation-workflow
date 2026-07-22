@@ -97,7 +97,9 @@ export function ReviewPage({ review }: { review: Review }) {
           <DecisionStrip
             segment={selected}
             onAccept={() => void decide(selected, 'accept')}
-            onEdit={(after, reason) => void decide(selected, 'edit', { after, reason })}
+            onEdit={(after, reason, promote) =>
+              void decide(selected, 'edit', { after, reason, promoteToGlossary: promote })
+            }
             onReject={(cat, sev, reason) =>
               void decide(selected, 'reject', { mqmCategory: cat, mqmSeverity: sev, reason })
             }
