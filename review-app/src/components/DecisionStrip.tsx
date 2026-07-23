@@ -26,8 +26,9 @@ export function DecisionStrip(props: {
   const [cat, setCat] = useState<MqmCategory>('Terminology')
   const [sev, setSev] = useState<Severity>('major')
   const approved = s.status === 'approved'
-  const axis = s.criticFlags[0]?.axis ?? '—'
-  const flagMsg = s.criticFlags[0]?.message ?? '全チェック通過'
+  const hasCritic = s.criticFlags.length > 0
+  const axis = hasCritic ? s.criticFlags[0].axis : '—'
+  const flagMsg = hasCritic ? s.criticFlags[0].message : '全チェック通過'
 
   return (
     <div className="strip">
@@ -38,7 +39,7 @@ export function DecisionStrip(props: {
         </div>
         <div style={{ flex: 1, minWidth: 200 }}>
           <div className="muted" style={{ fontSize: 11 }}>
-            {`セグメント ${s.order + 1}`} ・ critic: <span style={{ color: axis === '—' ? 'var(--ok-fg)' : 'var(--danger-fg)' }}>{axis}</span>
+            {`セグメント ${s.order + 1}`} ・ critic: <span style={{ color: hasCritic ? 'var(--danger-fg)' : 'var(--ok-fg)' }}>{axis}</span>
           </div>
           <div style={{ fontSize: 12 }}>{flagMsg}</div>
           {s.backTranslation && (

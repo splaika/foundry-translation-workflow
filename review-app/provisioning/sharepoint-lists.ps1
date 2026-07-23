@@ -49,6 +49,9 @@ Add-PnPField -List "Decisions" -DisplayName "AfterText"        -InternalName "Af
 Add-PnPField -List "Decisions" -DisplayName "MqmCategory"      -InternalName "MqmCategory"      -Type Text
 Add-PnPField -List "Decisions" -DisplayName "MqmSeverity"      -InternalName "MqmSeverity"      -Type Text
 Add-PnPField -List "Decisions" -DisplayName "Reason"           -InternalName "Reason"           -Type Note
+# 用語昇格は独立 PromotionQueue リストではなく、この Boolean フラグで表現する。
+# レビュアーが修正時に「用語集に昇格」を ON → Logic Apps が PromoteToGlossary=true の Decisions を
+# harvest し、用語責任者の承認ゲートを経て termbase 化する（materialize したい場合の投影は harvest 側）。
 Add-PnPField -List "Decisions" -DisplayName "PromoteToGlossary"-InternalName "PromoteToGlossary"-Type Boolean
 Add-PnPField -List "Decisions" -DisplayName "Ts"               -InternalName "Ts"               -Type DateTime
 

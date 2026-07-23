@@ -72,7 +72,7 @@ export interface Decision {
   mqmCategory?: MqmCategory
   mqmSeverity?: Severity
   reason?: string
-  promoteToGlossary?: boolean // true のとき PromotionQueue へ（承認ゲート経由）
+  promoteToGlossary?: boolean // 修正時に「用語集に昇格」ON で true。Logic Apps が harvest → 承認ゲート経由で termbase 化（別リストは作らず本フラグで表現）
   ts: string
 }
 
