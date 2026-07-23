@@ -4,6 +4,8 @@
 
 **社内限定 / Confidential。** GitHub Pages で図付き HTML として閲覧するための最小構成リポジトリ。
 
+> 👥 **メンバー向けの解説（前提知識なしで読める版）は別リポジトリ**: [pharmatranslate-team-guide](https://splaika.github.io/pharmatranslate-team-guide/) — 「何を作っているか / 誰が・何を・どこまでやったら完了か」をまとめた社内ガイド。**本リポジトリは設計＋実装の正本（開発者向け）**という役割分担。
+
 ## 収録ファイル
 
 | ファイル | 役割 |
